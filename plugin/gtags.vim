@@ -208,6 +208,11 @@ if exists("loaded_gtags")
 endif
 
 "
+" gtags command name
+"
+let s:gtags_command = "gtags"
+
+"
 " global command name
 "
 let s:global_command = $GTAGSGLOBAL
@@ -514,6 +519,26 @@ function! s:GtagsAutoUpdate()
     let l:result = system(s:global_command . " -u --single-update=\"" . expand("%") . "\"")
 endfunction
 
+function! s:CompilationDatabase2FileList()
+exec "python3 << EOF"
+import json
+fi = open("compile_commands.json")
+fo = open("/tmp/file.lst", "w+")
+for f in json.load(fi):
+    fo.write(f[u'file'] + '\n')
+fo.close()
+fi.close()
+EOF
+    return "/tmp/file.lst"
+endfunction
+
+function! s:BuildGtags() 
+    if filereadable("compile_commands.json")
+        let l:result = system(s:gtags_command . " -f " . s:CompilationDatabase2FileList())
+    else 
+        let l:result = system(s:gtags_command)
+    endif
+endfunction
 "
 " Custom completion.
 "
@@ -547,6 +572,7 @@ command! -nargs=* -complete=custom,GtagsCandidate Gtagsa call s:RunGlobal(<q-arg
 command! -nargs=0 GtagsCursor call s:GtagsCursor()
 command! -nargs=0 Gozilla call s:Gozilla()
 command! -nargs=0 GtagsUpdate call s:GtagsAutoUpdate()
+command! -nargs=0 BuildGtags call s:BuildGtags()
 if g:Gtags_Auto_Update == 1
 	:autocmd! BufWritePost * call s:GtagsAutoUpdate()
 endif
